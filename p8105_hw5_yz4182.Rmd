@@ -213,16 +213,38 @@ iris_with_missing = iris %>%
 
 ```
 
-Missing data function
+Create missing data function
+
 ```{r}
 fill_in_missing = function(vector) {
   
-  if (is.numeric()) {
+  if (is.numeric(vector)) {
+    
+    vector =
+      vector %>% 
+      replace_na(mean(vector[!is.na(vector)]))
     
   }
   
-  if (is.character()) {
+  if (is.character(vector)) {
+   
+    vector = 
+      vector %>% 
+      replace_na("virginica")
     
   }
+  
+  return(vector)
 }
+
 ```
+
+Mapping the missing data
+
+```{r}
+iris_without_missing =
+  map_df(.x = iris_with_missing, ~ fill_in_missing(.x))
+
+iris_without_missing
+```
+
