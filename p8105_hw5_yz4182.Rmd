@@ -14,22 +14,29 @@ library(ggplot2)
 Describe the raw data. Create a city_state variable (e.g. “Baltimore, MD”) and then summarize within cities to obtain the total number of homicides and the number of unsolved homicides (those for which the disposition is “Closed without arrest” or “Open/No arrest”).
 
 ```{r}
-homicide_df = 
+# input row data
+homicide_row = 
   read_csv("./data/homicide-data.csv", na = c("", "Unknown")) %>% 
-  janitor::clean_names() %>% 
+  janitor::clean_names()
+
+homicide_df =
+  homicide_row %>% 
   mutate(
     city_state = str_c(city, state),
     resolution = case_when(
       disposition == "Closed without arrest" ~ "unsolved",
       disposition == "Open/No arrest" ~ "unsolved",
       disposition == "Closed by arrest" ~ "solved",
-    )
+    )                                                  # create a city_state variable
          ) %>% 
   relocate(city_state) %>% 
   filter(city_state != "TulsaAL")
 ```
 
-For the city of Baltimore, MD, use the prop.test function to estimate the proportion of homicides that are unsolved; save the output of prop.test as an R object, apply the broom::tidy to this object and pull the estimated proportion and confidence intervals from the resulting tidy dataframe.
+
+The row data contains 12 variables and 52179 observations. The variable names are `r names(homicide_row)`
+
+Now, for the city of Baltimore, MD, use the prop.test function to estimate the proportion of homicides that are unsolved; save the output of prop.test as an R object, apply the broom::tidy to this object and pull the estimated proportion and confidence intervals from the resulting tidy dataframe.
 
 ```{r}
 baltimore_df =
@@ -56,7 +63,7 @@ baltimore_test %>%
 
 ```
 
-Now run prop.test for each of the cities in your dataset, and extract both the proportion of unsolved homicides and the confidence interval for each. Do this within a “tidy” pipeline, making use of purrr::map, purrr::map2, list columns and unnest as necessary to create a tidy dataframe with estimated proportions and CIs for each city.
+Let's run prop.test for each of the cities in your dataset, and extract both the proportion of unsolved homicides and the confidence interval for each. Do this within a “tidy” pipeline, making use of purrr::map, purrr::map2, list columns and unnest as necessary to create a tidy dataframe with estimated proportions and CIs for each city.
 
 ```{r}
 # create function for prop.test
@@ -119,11 +126,9 @@ nested_df %>%
 
 ## Problem 2
 
-Create a tidy dataframe containing data from all participants, including the subject ID, arm, and observations over time:
+In this problem, I create a tidy dataframe containing data from all participants, including the subject ID, arm, and observations over time:
 
-Start with a dataframe containing all file names.Iterate over file names and read in data for each subject using purrr::map and saving the result as a new variable in the dataframe.
-
-Tidy the result; manipulate file names to include control arm and subject ID, make sure weekly observations are “tidy”, and do any other tidying that’s necessary.
+Start with a dataframe containing all file names.Iterate over file names and read in data for each subject using purrr::map and saving the result as a new variable in the dataframe. Manipulate file names to include control arm and subject ID, 
 
 ```{r}
 # make function to read data in files
@@ -148,7 +153,7 @@ longitudinal_df =
     files, into = c("arm", "subject_id", sep = "_")) %>%            # add participants variable
   mutate(
     observations = map(path, read_data_function)) %>% 
-  select(-"_")
+  select(arm, subject_id, observations)
 
 # show data frame
 longitudinal_df
@@ -160,8 +165,7 @@ Then I tidy the results.
 #unnest the list variable
 unnest_df =
   longitudinal_df %>% 
-  unnest(cols = "observations") %>% 
-  select(-path)
+  unnest(cols = "observations")
 
 # show table
 knitr::kable(unnest_df)
@@ -171,6 +175,7 @@ knitr::kable(unnest_df)
 Make a spaghetti plot showing observations on each subject over time, and comment on differences between groups.
 
 ```{r}
+# first make the observation data tidy
 plot_df =
   unnest_df %>% 
   pivot_longer(
@@ -180,6 +185,8 @@ plot_df =
     values_to = "obs_value"
   ) 
 
+plot_df
+
 # make spaghetti plot
 plot_df %>% 
   group_by(arm) %>% 
@@ -187,7 +194,7 @@ plot_df %>%
   geom_line() +
   facet_grid(.~arm) +
   labs(
-    title = "Spaghetti Plot for Arms in 8 Weeks",
+    title = "Spaghetti Plot for Two Arms' Observations in 8 Weeks",
     x = "Week",
     y = "Value",
     ) 
@@ -195,6 +202,7 @@ plot_df %>%
   
 ```
 
+Comments: The plot shows higher observation values on patients in experimental arm than control arm. With time goes by, observation values tends to increase in experimental arm, while observation values tends to keep the same in control arm.
 
 ## Problem 3
 Write a function that takes a vector as an argument; replaces missing values using the rules defined; and returns the resulting vector. Apply this function to the columns of iris_with_missing using a map statement.
@@ -205,6 +213,7 @@ For numeric variables, fill in missing values with the mean of non-missing value
 For character variables, fill in missing values with "virginica".
 
 ```{r}
+# data input
 set.seed(10)
 
 iris_with_missing = iris %>% 
@@ -216,6 +225,7 @@ iris_with_missing = iris %>%
 Create missing data function
 
 ```{r}
+# create a function to fill the missing data
 fill_in_missing = function(vector) {
   
   if (is.numeric(vector)) {
@@ -242,9 +252,11 @@ fill_in_missing = function(vector) {
 Mapping the missing data
 
 ```{r}
+# map the function to the dataset
 iris_without_missing =
   map_df(.x = iris_with_missing, ~ fill_in_missing(.x))
 
+# show the results
 iris_without_missing
 ```
 
